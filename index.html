@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Разучивание реплик — Волшебник Изумрудного города</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 12px;
+    background: #f5f1e8;
+    color: #2a2a2a;
+    line-height: 1.55;
+  }
+  h1 { font-size: 1.3em; margin: 0 0 12px; }
+
+  .controls {
+    background: #fff;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    align-items: center;
+  }
+  .controls .group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .controls label { font-weight: bold; font-size: 0.9em; white-space: nowrap; }
+  .controls select, .controls input[type=search] {
+    padding: 6px 8px;
+    font-size: 0.95em;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    font-family: inherit;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .hint { color: #777; font-size: 0.82em; font-style: italic; margin: 0; padding: 0 4px; }
+  .role-stack { display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; min-width: 0; }
+  .role-stack .group { flex: 0 0 auto; }
+  #btnGoto {
+    position: absolute;
+    padding: 4px 10px;
+    font-size: 0.85em;
+    font-family: inherit;
+    background: #6b4423;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    z-index: 50;
+  }
+  #btnGoto:hover { background: #8a5a30; }
+  .line.search-selected { box-shadow: 0 0 0 2px #6b4423; }
+  .stats { font-size: 0.8em; color: #777; flex-basis: 100%; }
+  .controls .toggle { display: flex; align-items: center; gap: 5px; font-size: 0.9em; cursor: pointer; }
+  .controls .toggle input { cursor: pointer; }
+
+  .scene-header {
+    margin: 22px 0 8px;
+    padding: 7px 11px;
+    background: #6b4423;
+    color: #fff;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 0.92em;
+    scroll-margin-top: 8px;
+  }
+  .act-header {
+    margin: 28px 0 8px;
+    padding: 6px 0;
+    color: #8a7a66;
+    font-weight: 500;
+    font-size: 0.9em;
+    letter-spacing: 0.25em;
+    text-align: center;
+    text-transform: uppercase;
+    border-top: 1px solid #d9cfc1;
+    border-bottom: 1px solid #d9cfc1;
+    background: transparent;
+    scroll-margin-top: 8px;
+  }
+  .line {
+    margin: 6px 0;
+    padding: 7px 10px;
+    border-radius: 5px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    display: flex;
+    gap: 8px;
+  }
+  .line .num {
+    color: #b0b0b0;
+    min-width: 28px;
+    font-size: 0.75em;
+    padding-top: 3px;
+    text-align: right;
+    user-select: none;
+  }
+  .line .body { flex: 1; min-width: 0; }
+  .role {
+    font-weight: bold;
+    color: #6b4423;
+    margin-right: 4px;
+  }
+  .text { white-space: pre-wrap; word-wrap: break-word; }
+  .text i.inline-stage { color: #888; font-style: italic; }
+  .stage {
+    background: transparent;
+    box-shadow: none;
+    font-style: italic;
+    color: #777;
+    padding: 3px 10px;
+  }
+  .music {
+    background: transparent;
+    box-shadow: none;
+    color: #b07d2a;
+    padding: 3px 10px;
+    font-size: 0.85em;
+  }
+  .hidden-line {
+    background: #fef6e0;
+    border-left: 4px solid #d4a017;
+    cursor: pointer;
+  }
+  .hidden-line .text {
+    color: transparent;
+    background: #e8dcc0;
+    border-radius: 3px;
+    user-select: none;
+  }
+  .hidden-line .text i.inline-stage { color: transparent; background: #e8dcc0; }
+  .hidden-line.revealed .text {
+    color: #2a2a2a;
+    background: transparent;
+    user-select: text;
+  }
+  .hidden-line.revealed .text i.inline-stage { color: #888; background: transparent; }
+  .text .song-line { color: #156082; }
+  .hidden-line .text .song-line { color: transparent; background: #e8dcc0; }
+  .hidden-line.revealed .text .song-line { color: #156082; background: transparent; }
+  .song-stage .body { color: #156082; font-style: normal; }
+  .props {
+    margin: 4px 0 8px;
+    padding: 4px 10px;
+    font-size: 0.82em;
+    color: #777;
+  }
+  .props summary { cursor: pointer; color: #8a7a66; }
+  .props b { color: #6b4423; }
+
+  .empty-msg {
+    text-align: center;
+    padding: 30px 16px;
+    color: #555;
+    background: #fff;
+    border-radius: 8px;
+    border: 2px dashed #d0c8b8;
+  }
+  .empty-msg.drag { background: #fef6e0; border-color: #d4a017; }
+  .empty-msg label.filebtn {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 8px 16px;
+    background: #6b4423;
+    color: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .empty-msg label.filebtn:hover { background: #8a5a30; }
+  .empty-msg .secondary { margin-top: 14px; font-size: 0.88em; color: #888; }
+  mark { background: #fff3a0; padding: 1px 2px; border-radius: 2px; }
+
+  .action-bar {
+    position: fixed;
+    bottom: 12px;
+    right: 12px;
+    display: none;
+    gap: 6px;
+    background: rgba(255,255,255,0.96);
+    padding: 7px 8px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+    z-index: 100;
+  }
+  .action-bar button {
+    touch-action: manipulation;
+    padding: 7px 11px;
+    font-size: 0.88em;
+    font-family: inherit;
+    background: #6b4423;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .action-bar button:hover { background: #8a5a30; }
+  .action-bar button:disabled { background: #c0b8a8; cursor: default; }
+
+  @media (max-width: 600px) {
+    body { padding: 8px; }
+    h1 { font-size: 1.1em; margin-bottom: 8px; }
+    .controls { padding: 8px; gap: 6px; }
+    .controls .group { flex-basis: 100%; }
+    .line { padding: 6px 8px; gap: 6px; }
+    .line .num { min-width: 22px; }
+    .action-bar { bottom: 6px; right: 6px; padding: 5px 6px; }
+    .action-bar button { padding: 6px 8px; font-size: 0.82em; }
+  }
+
+  @media print {
+    .controls, .action-bar, #btnGoto { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Волшебник Изумрудного города — разучивание реплик</h1>
+
+<div class="controls">
+  <div class="role-stack">
+    <div class="group">
+      <label for="role">Роль:</label>
+      <select id="role"><option value="">— все —</option></select>
+    </div>
+    <p class="hint" id="roleHint" style="display:none">Кликните по скрытой реплике, чтобы её показать.</p>
+    <div class="group" id="actGroup">
+      <label for="act">Действие:</label>
+      <select id="act"><option value="">↧ перейти —</option></select>
+    </div>
+  </div>
+  <div class="group">
+    <label for="scene">Картина:</label>
+    <select id="scene"><option value="">↧ перейти —</option></select>
+  </div>
+  <div class="group" style="flex-basis:100%">
+    <label for="search">Поиск:</label>
+    <input type="search" id="search" placeholder="слова в тексте">
+  </div>
+  <label class="toggle"><input type="checkbox" id="hideRemarks"> Скрыть примечания</label>
+  <span class="stats" id="stats"></span>
+</div>
+
+<div id="script">
+  <div class="empty-msg" id="loader">
+    <strong>Загрузите файл сценария</strong>
+    <div class="secondary">Перетащите <code>24.docx.html</code> сюда или выберите файл.<br>Файл сохранится в браузере и загрузится автоматически при следующем открытии.</div>
+    <label class="filebtn">Выбрать файл<input type="file" id="fileInput" accept=".html,.htm,.txt,text/html,text/plain" style="display:none"></label>
+  </div>
+</div>
+
+<button id="btnGoto" type="button" style="display:none">Перейти</button>
+
+<div class="action-bar" id="actionBar">
+  <button id="btnTop" title="В начало страницы">↑ Начало</button>
+  <button id="btnHideAll" title="Снова скрыть все реплики">Скрыть все</button>
+  <button id="btnShowAll" title="Показать все скрытые реплики">Показать все</button>
+  <button id="btnNext" title="Перейти к следующей реплике">Следующая ↓</button>
+</div>
+
+<script>
+const KNOWN_ROLES = [
+  'ЭЛЛИ','ТОТОШКА','СТРАШИЛА','ЖЕЛЕЗНЫЙ ДРОВОСЕК','ЛЕВ','ГУДВИН','БАСТИНДА','ГИНГЕМА',
+  'ЛЮДОЕД','ВИЛЛИНА','СТЕЛЛА','ФАРАМАНТ','ДИН ГИОР','ГОЛОС МАМЫ','ГОЛОС ПАПЫ',
+  'ЖЕВУН 1','ЖЕВУН 2','ЖЕВУН 3','ЖЕВУН 4','ЖЕВУНЫ',
+  'МИГУН 1','МИГУН 2','МИГУН 3','МИГУН 4','МИГУНЫ',
+  'ВОРОНА 1','ВОРОНА 2','ВОРОНА 3','ВОРОН','ВОРОНЫ',
+  'ОБЕЗЬЯНА 1','ОБЕЗЬЯНА 2','ОБЕЗЬЯНА 3','ОБЕЗЬЯНА ГЛАВАРЬ','ОБЕЗЬЯНА','ОБЕЗЬЯНЫ',
+  'ТИГР 1','ТИГР 2','ТИГР 3','ТИГР 4','МАКИ','МЫШИ','ПАУКИ',
+  'СТРАЖНИКИ','ЭЛЛИ И ТОТОШКА','ВМЕСТЕ','ХОР'
+];
+const ALIASES = {
+  'ГУДВИН ГОЛОС': 'ГУДВИН',
+  'ГОЛОС ГУДВИНА': 'ГУДВИН',
+  'ВОЛШЕБНИК ГУДВИН': 'ГУДВИН',
+  'ВЕЛИНА': 'ВИЛЛИНА',
+  'ВЕЛЛИНА': 'ВИЛЛИНА',
+  'ВИЛИНА': 'ВИЛЛИНА',
+  'СТРАШИЛЛА': 'СТРАШИЛА',
+  'ДРОВОСЕК': 'ЖЕЛЕЗНЫЙ ДРОВОСЕК',
+  'ТРУСЛИВЫЙ ЛЕВ': 'ЛЕВ',
+  'ОБЕЗЬЯНЫ ВМЕСТЕ': 'ОБЕЗЬЯНЫ',
+  'СТРАЖНИКИ ВМЕСТЕ': 'СТРАЖНИКИ',
+  'ХОРОМ': 'ХОР',
+  'ВСЕ ХОРОМ': 'ХОР',
+  'ВСЕ': 'ХОР'
+};
+// Group replicas are also hidden for each member role
+const GROUP_MEMBERS = {
+  'ЖЕВУНЫ': ['ЖЕВУН 1','ЖЕВУН 2','ЖЕВУН 3','ЖЕВУН 4'],
+  'МИГУНЫ': ['МИГУН 1','МИГУН 2','МИГУН 3','МИГУН 4'],
+  'ВОРОНЫ': ['ВОРОНА 1','ВОРОНА 2','ВОРОНА 3','ВОРОН'],
+  'ОБЕЗЬЯНЫ': ['ОБЕЗЬЯНА 1','ОБЕЗЬЯНА 2','ОБЕЗЬЯНА 3','ОБЕЗЬЯНА ГЛАВАРЬ','ОБЕЗЬЯНА'],
+  'СТРАЖНИКИ': ['ФАРАМАНТ','ДИН ГИОР'],
+  'ЭЛЛИ И ТОТОШКА': ['ЭЛЛИ','ТОТОШКА']
+};
+function isRoleHidden(entryRole, selected) {
+  if (!selected) return false;
+  return entryRole === selected || (GROUP_MEMBERS[entryRole] || []).includes(selected);
+}
+
+let entries = [];
+let scenes = [];
+let acts = [];
+let rolesPresent = [];
+let selectedEntryIdx = null;
+
+const roleSelect = document.getElementById('role');
+const sceneSelect = document.getElementById('scene');
+const actSelect = document.getElementById('act');
+const actGroup = document.getElementById('actGroup');
+const searchInput = document.getElementById('search');
+const hideRemarksCheckbox = document.getElementById('hideRemarks');
+const scriptEl = document.getElementById('script');
+const statsEl = document.getElementById('stats');
+const roleHint = document.getElementById('roleHint');
+const btnGoto = document.getElementById('btnGoto');
+
+function findBoldClasses(doc) {
+  const set = new Set();
+  const css = Array.from(doc.querySelectorAll('style')).map(s => s.textContent).join('\n');
+  const re = /\.(c\d+)\s*\{([^}]*)\}/g;
+  let m;
+  while ((m = re.exec(css))) {
+    if (/font-weight\s*:\s*(700|bold)/i.test(m[2])) set.add(m[1]);
+  }
+  return set;
+}
+
+// Splits a block into visual lines (by <br>), remembering which characters are bold.
+function blockLines(el, boldClasses) {
+  const lines = [{ chars: '', bold: [] }];
+  function walk(node, bold) {
+    for (const ch of node.childNodes) {
+      if (ch.nodeType === 3) {
+        const cur = lines[lines.length - 1];
+        const t = ch.textContent.replace(/\u00A0/g, ' ');
+        cur.chars += t;
+        for (let i = 0; i < t.length; i++) cur.bold.push(bold);
+      } else if (ch.nodeType === 1) {
+        const tag = ch.tagName.toLowerCase();
+        if (tag === 'br') { lines.push({ chars: '', bold: [] }); continue; }
+        let b = bold;
+        if (tag === 'b' || tag === 'strong') b = true;
+        const classes = (ch.className || '').split(/\s+/);
+        if (classes.some(c => boldClasses.has(c))) b = true;
+        walk(ch, b);
+      }
+    }
+  }
+  walk(el, false);
+  return lines;
+}
+
+// A line is a song line when most of its spoken letters (without role label and stage directions) are bold.
+function isSongChars(line) {
+  let start = 0;
+  const rm = line.chars.match(/^\s*([^:()]{2,40}?)\s*:/);
+  if (rm && normalizeRole(rm[1])) start = rm[0].length;
+  let depth = 0, bold = 0, normal = 0;
+  for (let i = start; i < line.chars.length; i++) {
+    const c = line.chars[i];
+    if (c === '(') { depth++; continue; }
+    if (c === ')') { depth = Math.max(0, depth - 1); continue; }
+    if (depth || !/[А-ЯЁа-яёA-Za-z]/.test(c)) continue;
+    if (line.bold[i]) bold++; else normal++;
+  }
+  return bold > 0 && bold >= normal;
+}
+
+function htmlToText(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const boldClasses = findBoldClasses(doc);
+  const body = doc.body || doc.documentElement;
+  const out = [];
+  for (const el of body.querySelectorAll('p, h1, h2, h3, h4, li')) {
+    if (el.querySelector('p, h1, h2, h3, h4, li')) continue;
+    const lines = blockLines(el, boldClasses);
+    let any = false;
+    for (const line of lines) {
+      const t = line.chars.replace(/\s+/g, ' ').trim();
+      if (!t) continue;
+      any = true;
+      const sc = t.match(/^картина\s+(\d+)\s*[.:]?\s*(.*)$/i);
+      if (sc) { out.push('\x03' + sc[1] + (sc[2] ? '\x03' + sc[2] : '')); continue; }
+      if (/^смена\s+декорац/i.test(t)) { out.push('(' + t.replace(/^\(+|\)+$/g, '') + ')'); continue; }
+      out.push(isSongChars(line) ? '\x01' + t : t);
+    }
+    if (!any) out.push('');
+  }
+  return out.join('\n');
+}
+
+function looksLikeHtml(s) {
+  const head = s.slice(0, 2000).toLowerCase();
+  return /<\s*(!doctype html|html|body|head|p\b|div\b|table\b)/.test(head);
+}
+
+function loadText(text) {
+  const script = looksLikeHtml(text) ? htmlToText(text) : text;
+  parse(script);
+  render();
+}
+
+function bindLoader() {
+  const loader = document.getElementById('loader');
+  const fileInput = document.getElementById('fileInput');
+  if (fileInput) {
+    fileInput.addEventListener('change', e => {
+      const f = e.target.files[0];
+      if (f) f.text().then(loadText);
+    });
+  }
+  if (loader) {
+    ['dragenter','dragover'].forEach(ev => loader.addEventListener(ev, e => {
+      e.preventDefault(); loader.classList.add('drag');
+    }));
+    ['dragleave','drop'].forEach(ev => loader.addEventListener(ev, e => {
+      e.preventDefault(); loader.classList.remove('drag');
+    }));
+    loader.addEventListener('drop', e => {
+      const f = e.dataTransfer.files[0];
+      if (f) f.text().then(loadText);
+    });
+  }
+}
+
+fetch('24.docx.html').then(r => {
+  if (!r.ok) throw new Error('not found');
+  return r.text();
+}).then(loadText).catch(() => { bindLoader(); });
+
+function normalizeRole(name) {
+  const up = name.trim().toUpperCase().replace(/\s+/g, ' ').replace(/([А-ЯЁ])(\d)/g, '$1 $2');
+  if (ALIASES[up]) return ALIASES[up];
+  return KNOWN_ROLES.includes(up) ? up : null;
+}
+function isRoleLineStart(s) {
+  const m = s.match(/^([^:()]{2,40}?)\s*(\([^()]*\))?\s*:\s*(.*)$/);
+  if (m) {
+    const role = normalizeRole(m[1]);
+    if (role) return { role, rest: m[2] ? (m[2] + ' ' + m[3]).trim() : m[3] };
+  }
+  return null;
+}
+function isSongHeading(s) {
+  return s.length <= 70 && !s.includes(':') && (/^(песня|танец|романс)/i.test(s) || /\+\s*(танец|песня)/i.test(s));
+}
+
+function parse(text) {
+  entries = []; scenes = []; acts = [];
+  const rolesSet = new Set();
+  const rawLines = text.split(/\r?\n/);
+  let started = false, currentScene = null, currentSpeaker = null, buffer = [];
+  let songSpeaker = null;
+  let continuationSpeaker = null;
+  let awaitingTitle = null;
+  let props = null, propsSection = null, pendingProps = null;
+
+  function flush() {
+    if (currentSpeaker && buffer.length) {
+      const body = buffer.join('\n').trim();
+      if (body) { entries.push({ kind:'line', role:currentSpeaker, text:body, scene:currentScene }); rolesSet.add(currentSpeaker); }
+    }
+    buffer = []; currentSpeaker = null;
+  }
+  function pushScene(label) {
+    currentScene = label;
+    if (!scenes.includes(label)) scenes.push(label);
+    entries.push({ kind:'scene', text:label, scene:label });
+    if (pendingProps && (pendingProps.rekv.length || pendingProps.dec.length)) {
+      entries.push({ kind:'props', props:pendingProps, scene:label });
+    }
+    pendingProps = null;
+  }
+
+  for (let raw of rawLines) {
+    let s = raw.replace(/\t/g, ' ').trim();
+    const isSongLine = s.startsWith('\x01');
+    if (isSongLine) s = s.slice(1);
+    if (!s) {
+      if (currentSpeaker) continuationSpeaker = currentSpeaker;
+      flush();
+      continue;
+    }
+
+    if (s.charCodeAt(0) === 3) {
+      flush();
+      continuationSpeaker = null; songSpeaker = null;
+      if (props) { pendingProps = props; props = null; }
+      const parts = s.slice(1).split('\x03');
+      started = true;
+      if (parts[1]) { pushScene('КАРТИНА ' + parts[0] + '. ' + parts[1]); awaitingTitle = null; }
+      else awaitingTitle = parts[0];
+      continue;
+    }
+
+    if (/^реквизит(?![а-яё])/i.test(s)) {
+      flush();
+      if (awaitingTitle) { pushScene('КАРТИНА ' + awaitingTitle); awaitingTitle = null; }
+      props = { rekv: [], dec: [] }; propsSection = 'rekv';
+      continue;
+    }
+    if (props) {
+      if (/^декорации\s*:?$/i.test(s)) { propsSection = 'dec'; continue; }
+      props[propsSection].push(s.replace(/[.,;]+$/, ''));
+      continue;
+    }
+    if (!started) continue;
+
+    if (awaitingTitle) {
+      const plain = !isRoleLineStart(s) && !s.startsWith('(') && !isSongHeading(s);
+      pushScene('КАРТИНА ' + awaitingTitle + (plain ? '. ' + s : ''));
+      awaitingTitle = null;
+      if (plain) continue;
+    }
+
+    if (isSongHeading(s)) {
+      flush();
+      continuationSpeaker = null;
+      entries.push({ kind:'music', text:'🎵 ' + s, scene:currentScene });
+      continue;
+    }
+
+    const rl = isRoleLineStart(s);
+    if (rl) {
+      continuationSpeaker = null;
+      flush();
+      currentSpeaker = rl.role;
+      songSpeaker = isSongLine ? rl.role : null;
+      if (rl.rest) buffer.push(isSongLine ? '\x01' + rl.rest : rl.rest);
+      continue;
+    }
+
+    const isStage = s.startsWith('(') && s.endsWith(')');
+    if (currentSpeaker) {
+      if (isStage) {
+        continuationSpeaker = currentSpeaker;
+        flush();
+        entries.push({ kind:'stage', text:s, scene:currentScene });
+      } else {
+        if (isSongLine) songSpeaker = currentSpeaker;
+        buffer.push(isSongLine ? '\x01' + s : s);
+      }
+    } else if (isStage) {
+      entries.push({ kind:'stage', text:s, scene:currentScene });
+    } else if (isSongLine && songSpeaker) {
+      currentSpeaker = songSpeaker;
+      continuationSpeaker = null;
+      buffer.push('\x01' + s);
+    } else if (continuationSpeaker) {
+      currentSpeaker = continuationSpeaker;
+      continuationSpeaker = null;
+      buffer.push(isSongLine ? '\x01' + s : s);
+    } else {
+      entries.push({ kind:'stage', text:s, scene:currentScene, song:isSongLine });
+    }
+  }
+  flush();
+  if (awaitingTitle) pushScene('КАРТИНА ' + awaitingTitle);
+
+  rolesPresent = Array.from(rolesSet).sort((a, b) => a.localeCompare(b, 'ru', { numeric: true }));
+  roleSelect.innerHTML = '<option value="">— все —</option>' +
+    rolesPresent.map(r => `<option value="${r}">${r}</option>`).join('');
+  sceneSelect.innerHTML = '<option value="">↧ перейти —</option>' +
+    scenes.map((s, i) => `<option value="scene-${i}">${s.replace(/^КАРТИНА\s+/, '')}</option>`).join('');
+  actSelect.innerHTML = '<option value="">↧ перейти —</option>' +
+    acts.map((a, i) => `<option value="act-${i}">${a}</option>`).join('');
+  if (actGroup) actGroup.style.display = acts.length ? '' : 'none';
+}
+
+function highlight(text, term) {
+  if (!term) return text;
+  const re = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+  return text.replace(re, '<mark>$1</mark>');
+}
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function italicizeParens(html) {
+  return html.replace(/\(([^()]+)\)/g, '<i class="inline-stage">($1)</i>');
+}
+function songifyLines(html) {
+  return html.replace(/(^|\n)\x01([^\n]*)/g, '$1<span class="song-line">$2</span>');
+}
+
+function render() {
+  const hidden = roleSelect.value;
+  const term = searchInput.value.trim();
+  const hideRemarks = hideRemarksCheckbox.checked;
+  if (typeof btnGoto !== 'undefined' && btnGoto) {
+    btnGoto.style.display = 'none';
+    delete btnGoto.dataset.entryIdx;
+  }
+  scriptEl.innerHTML = '';
+  let sceneIdx = -1, total = 0, hiddenCount = 0;
+
+  const scenesWithMatches = new Set();
+  if (term) {
+    const lc = term.toLowerCase();
+    for (const e of entries) {
+      if (e.kind === 'line' && (e.text.toLowerCase().includes(lc) || (e.role || '').toLowerCase().includes(lc))) {
+        if (e.scene) scenesWithMatches.add(e.scene);
+      }
+    }
+  }
+
+  for (const e of entries) {
+    if (hideRemarks && (e.kind === 'stage' || e.kind === 'music' || e.kind === 'props')) continue;
+    if (term && (e.kind === 'stage' || e.kind === 'props')) continue;
+    if (term && e.kind === 'music') continue;
+    if (term && e.kind === 'act') continue;
+    if (term && e.kind === 'line' && !e.text.toLowerCase().includes(term.toLowerCase()) && !(e.role || '').toLowerCase().includes(term.toLowerCase())) continue;
+
+    if (e.kind === 'act') {
+      const a = document.createElement('div');
+      a.className = 'act-header';
+      const actIdx = acts.indexOf(e.text);
+      if (actIdx >= 0) a.id = 'act-' + actIdx;
+      a.textContent = e.text;
+      scriptEl.appendChild(a);
+      continue;
+    }
+    if (e.kind === 'scene') {
+      sceneIdx++;
+      if (term && !scenesWithMatches.has(e.text)) continue;
+      const h = document.createElement('div');
+      h.className = 'scene-header';
+      h.id = 'scene-' + sceneIdx;
+      h.textContent = e.text;
+      scriptEl.appendChild(h);
+      continue;
+    }
+    if (e.kind === 'props') {
+      const d = document.createElement('details');
+      d.className = 'props';
+      let h = '<summary>Реквизит и декорации</summary>';
+      if (e.props.rekv.length) h += '<div><b>Реквизит:</b> ' + escapeHtml(e.props.rekv.join(', ')) + '</div>';
+      if (e.props.dec.length) h += '<div><b>Декорации:</b> ' + escapeHtml(e.props.dec.join(', ')) + '</div>';
+      d.innerHTML = h;
+      scriptEl.appendChild(d);
+      continue;
+    }
+    if (e.kind === 'music') {
+      const d = document.createElement('div');
+      d.className = 'music';
+      d.textContent = e.text;
+      scriptEl.appendChild(d);
+      continue;
+    }
+    if (e.kind === 'stage') {
+      const d = document.createElement('div');
+      d.className = 'line stage' + (e.song ? ' song-stage' : '');
+      d.innerHTML = '<div class="num"></div><div class="body">' + highlight(escapeHtml(e.text), term) + '</div>';
+      scriptEl.appendChild(d);
+      continue;
+    }
+    total++;
+    const div = document.createElement('div');
+    div.className = 'line';
+    div.dataset.entryIdx = entries.indexOf(e);
+    const isHidden = isRoleHidden(e.role, hidden) && !term;
+    if (isHidden) { div.classList.add('hidden-line'); hiddenCount++; }
+
+    const num = document.createElement('div');
+    num.className = 'num';
+    num.textContent = total;
+    const body = document.createElement('div');
+    body.className = 'body';
+
+    const roleSpan = document.createElement('span');
+    roleSpan.className = 'role';
+    roleSpan.textContent = e.role + '.';
+    body.appendChild(roleSpan);
+
+    const textSpan = document.createElement('span');
+    textSpan.className = 'text';
+    textSpan.innerHTML = ' ' + songifyLines(italicizeParens(highlight(escapeHtml(e.text), term)));
+    body.appendChild(textSpan);
+
+    if (isHidden) div.addEventListener('click', () => {
+      const all = Array.from(scriptEl.querySelectorAll('.hidden-line'));
+      nextIdx = all.indexOf(div);
+      div.classList.toggle('revealed');
+    });
+
+    div.addEventListener('click', (ev) => {
+      if (ev.target.closest('#btnGoto')) return;
+      scriptEl.querySelectorAll('.line.search-selected').forEach(el => el.classList.remove('search-selected'));
+      div.classList.add('search-selected');
+      selectedEntryIdx = div.dataset.entryIdx;
+      if (term) showGotoButton(div);
+      else { btnGoto.style.display = 'none'; delete btnGoto.dataset.entryIdx; }
+    });
+    div.appendChild(num);
+    div.appendChild(body);
+    scriptEl.appendChild(div);
+  }
+
+  statsEl.textContent = hidden
+    ? `${hidden}: ${hiddenCount} скрыто из ${total}`
+    : `Всего реплик: ${total}`;
+
+  if (selectedEntryIdx != null) {
+    const sel = scriptEl.querySelector(`.line[data-entry-idx="${selectedEntryIdx}"]`);
+    if (sel) sel.classList.add('search-selected');
+  }
+}
+
+roleSelect.addEventListener('change', () => { render(); updateActionBar(); updateHint(); });
+searchInput.addEventListener('input', () => {
+  hideGotoButton();
+  render();
+});
+
+function showGotoButton(lineEl) {
+  btnGoto.dataset.entryIdx = lineEl.dataset.entryIdx;
+  btnGoto.style.display = '';
+  const rect = lineEl.getBoundingClientRect();
+  const btnW = btnGoto.offsetWidth || 80;
+  const scrollY = window.scrollY || window.pageYOffset;
+  const scrollX = window.scrollX || window.pageXOffset;
+  let left = rect.right + scrollX + 8;
+  if (left + btnW > scrollX + document.documentElement.clientWidth - 4) {
+    left = rect.right + scrollX - btnW - 8;
+  }
+  const top = rect.top + scrollY + (rect.height - btnGoto.offsetHeight) / 2;
+  btnGoto.style.left = left + 'px';
+  btnGoto.style.top = top + 'px';
+}
+
+function hideGotoButton() {
+  btnGoto.style.display = 'none';
+  delete btnGoto.dataset.entryIdx;
+  scriptEl.querySelectorAll('.line.search-selected').forEach(el => el.classList.remove('search-selected'));
+}
+
+btnGoto.addEventListener('click', () => {
+  const preserveIdx = btnGoto.dataset.entryIdx;
+  selectedEntryIdx = preserveIdx;
+  searchInput.value = '';
+  btnGoto.style.display = 'none';
+  delete btnGoto.dataset.entryIdx;
+  render();
+  if (preserveIdx != null) {
+    const target = scriptEl.querySelector(`.line[data-entry-idx="${preserveIdx}"]`);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+});
+
+window.addEventListener('scroll', () => {
+  if (btnGoto.style.display === 'none' || !btnGoto.dataset.entryIdx) return;
+  if (!searchInput.value.trim()) { btnGoto.style.display = 'none'; return; }
+  const sel = scriptEl.querySelector('.line.search-selected');
+  if (sel) showGotoButton(sel);
+});
+window.addEventListener('resize', () => {
+  if (!searchInput.value.trim()) return;
+  const sel = scriptEl.querySelector('.line.search-selected');
+  if (sel) showGotoButton(sel);
+});
+hideRemarksCheckbox.addEventListener('change', render);
+sceneSelect.addEventListener('change', () => {
+  const v = sceneSelect.value;
+  if (!v) return;
+  const el = document.getElementById(v);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  sceneSelect.value = '';
+});
+actSelect.addEventListener('change', () => {
+  const v = actSelect.value;
+  if (!v) return;
+  const el = document.getElementById(v);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  actSelect.value = '';
+});
+
+function updateHint() {
+  roleHint.style.display = roleSelect.value ? '' : 'none';
+}
+
+const actionBar = document.getElementById('actionBar');
+const btnTop = document.getElementById('btnTop');
+const btnHideAll = document.getElementById('btnHideAll');
+const btnShowAll = document.getElementById('btnShowAll');
+const btnNext = document.getElementById('btnNext');
+
+function updateActionBar() {
+  actionBar.style.display = 'flex';
+  const hasRole = !!roleSelect.value;
+  btnHideAll.style.display = hasRole ? '' : 'none';
+  btnShowAll.style.display = hasRole ? '' : 'none';
+  btnNext.style.display = hasRole ? '' : 'none';
+  if (hasRole) {
+    actionBar.style.left = '';
+    actionBar.style.right = '';
+    actionBar.style.transform = '';
+  } else {
+    actionBar.style.right = 'auto';
+    actionBar.style.left = '50%';
+    actionBar.style.transform = 'translateX(-50%)';
+  }
+}
+updateActionBar();
+
+btnTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+btnHideAll.addEventListener('click', () => {
+  scriptEl.querySelectorAll('.hidden-line.revealed').forEach(el => el.classList.remove('revealed'));
+});
+btnShowAll.addEventListener('click', () => {
+  scriptEl.querySelectorAll('.hidden-line').forEach(el => el.classList.add('revealed'));
+});
+let nextIdx = -1;
+btnNext.addEventListener('click', () => {
+  const all = Array.from(scriptEl.querySelectorAll('.hidden-line'));
+  if (!all.length) return;
+  const threshold = 60;
+  const visibleIdx = all.findIndex(el => el.getBoundingClientRect().top > threshold);
+  if (nextIdx < 0 || nextIdx >= all.length - 1 || visibleIdx > nextIdx + 1) {
+    nextIdx = visibleIdx >= 0 ? visibleIdx : 0;
+  } else {
+    nextIdx++;
+  }
+  all[nextIdx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+roleSelect.addEventListener('change', () => { nextIdx = -1; });
+</script>
+
+</body>
+</html>
